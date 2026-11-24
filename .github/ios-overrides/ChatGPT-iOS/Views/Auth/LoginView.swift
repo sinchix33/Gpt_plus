@@ -81,6 +81,7 @@ struct LoginView: View {
         .padding(24)
         .sheet(isPresented: $showingChatGPTBrowser, onDismiss: {
             chatGPTAuthURL = nil
+            authentication.cancelChatGPTSignIn()
         }) {
             if let url = chatGPTAuthURL {
                 OfficialChatGPTBrowser(url: url)
