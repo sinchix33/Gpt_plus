@@ -88,7 +88,7 @@ final class ChatGPTSignInManager: ObservableObject {
             host: NWEndpoint.Host("127.0.0.1"),
             port: .any
         )
-        let newListener = try NWListener(using: listenerParameters)
+        let newListener = try NWListener(using: listenerParameters, on: .any)
         listener = newListener
 
         let redirectURI: String = try await withCheckedThrowingContinuation { continuation in
