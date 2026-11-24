@@ -176,7 +176,6 @@ final class ChatGPTSignInManager: ObservableObject {
             return
         }
 
-        onBrowserCompleted?()
         if let oauthError = components.queryItems?.first(where: { $0.name == "error" })?.value {
             failCallback(SignInError.authorizationDenied(oauthError))
             return
@@ -239,6 +238,7 @@ final class ChatGPTSignInManager: ObservableObject {
             self.listener = nil
             self.activePort = nil
             self.isSigningIn = false
+            onBrowserCompleted?()
             onAuthenticated?(saved.email)
         } catch {
             failCallback(error)
@@ -265,6 +265,15 @@ final class ChatGPTSignInManager: ObservableObject {
         credentials = saved
         canUseChatGPTPlan = saved.scopes.contains("chatgpt.tokens.use.direct")
         return saved.accessToken
+    }
+
+    func cancelSignIn() {
+        guard pending != nil else { return }
+        pending = nil
+        listener?.cancel()
+        listener = nil
+        activePort = nil
+        isSigningIn = false
     }
 
     func signOut() {
