@@ -11,33 +11,62 @@ permissions:
 jobs:
   build:
     runs-on: macos-15
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract project archive
+      - name: Verify and extract project
+        shell: bash
         run: |
+          set -euo pipefail
           test -f ChatGPT-iOS-GitHub-ready.zip
           unzip -q ChatGPT-iOS-GitHub-ready.zip
-          cd ChatGPT-iOS
-          test -f project.yml
-          brew install xcodegen
+          test -f ChatGPT-iOS/project.yml
+          test -f ChatGPT-iOS/Resources/Info.plist
+          echo "Swift source files:"
+          find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift -print
+          count=$(find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift | wc -l | tr -d ' ')
+          test "$count" -ge 20
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ChatGPT-iOS
+        run: |
+          set -euo pipefail
           xcodegen generate --spec project.yml
+          test -f ChatGPT-iOS.xcodeproj/project.pbxproj
+          xcodebuild -list -project ChatGPT-iOS.xcodeproj
 
       - name: Build unsigned archive
         working-directory: ChatGPT-iOS
         run: |
-          xcodebuild -project ChatGPT-iOS.xcodeproj -scheme ChatGPT-iOS -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/ChatGPT-iOS.xcarchive" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive
+          set -o pipefail
+          xcodebuild \
+            -project ChatGPT-iOS.xcodeproj \
+            -scheme ChatGPT-iOS \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ChatGPT-iOS.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive | tee "$RUNNER_TEMP/xcodebuild-archive.log"
 
       - name: Package unsigned IPA
-        working-directory: ChatGPT-iOS
+        shell: bash
         run: |
+          set -euo pipefail
           APP="$RUNNER_TEMP/ChatGPT-iOS.xcarchive/Products/Applications/ChatGPT.app"
           test -d "$APP"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/ChatGPT.app"
           cd "$RUNNER_TEMP/ipa"
           /usr/bin/zip -qry "$GITHUB_WORKSPACE/ChatGPT-unsigned.ipa" Payload
+          test -s "$GITHUB_WORKSPACE/ChatGPT-unsigned.ipa"
           unzip -l "$GITHUB_WORKSPACE/ChatGPT-unsigned.ipa"
 
       - name: Upload unsigned IPA
@@ -47,3 +76,12 @@ jobs:
           path: ChatGPT-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-archive-log
+          path: ${{ runner.temp }}/xcodebuild-archive.log
+          if-no-files-found: ignore
+          retention-days: 7
