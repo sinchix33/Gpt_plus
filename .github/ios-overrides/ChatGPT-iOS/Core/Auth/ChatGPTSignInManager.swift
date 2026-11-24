@@ -269,20 +269,35 @@ final class ChatGPTSignInManager: ObservableObject {
         canUseChatGPTPlan = false
         Self.deleteKeychain(key: keychainKey)
         if let old, let refreshToken = old.refreshToken {
-            Task {
-                _ = try? await postForm(
-                    URL(string: "https://auth.openai.com/api/accounts/oauth/revoke")!,
-                    values: [
-                        "token": refreshToken,
-                        "token_type_hint": "refresh_token",
-                        "client_id": old.clientID
-                    ]
-                ) as EmptyResponse
-            }
+            Task { await revoke(refreshToken: refreshToken, clientID: old.clientID) }
         }
     }
 
-    private struct EmptyResponse: Decodable {}
+    private struct OpenIDConfiguration: Decodable {
+        let revocation_endpoint: String?
+    }
+
+    private func revoke(refreshToken: String, clientID: String) async {
+        do {
+            let discoveryURL = URL(string: "https://auth.openai.com/.well-known/openid-configuration")!
+            let (discoveryData, _) = try await URLSession.shared.data(from: discoveryURL)
+            let configuration = try JSONDecoder().decode(OpenIDConfiguration.self, from: discoveryData)
+            guard let endpoint = configuration.revocation_endpoint, let url = URL(string: endpoint) else { return }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            var form = URLComponents()
+            form.queryItems = [
+                URLQueryItem(name: "token", value: refreshToken),
+                URLQueryItem(name: "token_type_hint", value: "refresh_token"),
+                URLQueryItem(name: "client_id", value: clientID)
+            ]
+            request.httpBody = form.percentEncodedQuery?.data(using: .utf8)
+            _ = try await URLSession.shared.data(for: request)
+        } catch {
+            // Local sign-out remains complete. Users can also disconnect GPT Plus in ChatGPT settings.
+        }
+    }
 
     private func failCallback(_ error: Error) {
         pending = nil
