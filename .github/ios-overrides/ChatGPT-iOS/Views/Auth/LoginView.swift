@@ -55,7 +55,7 @@ struct LoginView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
 
-            Text("ChatGPT opens on its official website in a secure in-app browser. Website sign-in is separate: ChatGPT does not provide a public consumer OAuth flow that lets a third-party app receive the user's ChatGPT session.")
+            Text("ChatGPT opens its official website in a secure in-app browser for now. Native Sign in with ChatGPT is a separate OpenAI integration using OIDC and PKCE; it is available to eligible open-source apps and selected partners. This repository is currently private, and that native flow has not yet been enabled or validated for this project.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
