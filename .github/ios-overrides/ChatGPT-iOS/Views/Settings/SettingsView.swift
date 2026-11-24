@@ -17,12 +17,21 @@ public struct SettingsView: View {
                     if let email = authentication.userEmail {
                         LabeledContent("Signed in as", value: email)
                     }
+                    if authentication.chatGPT.hasIdentity {
+                        LabeledContent("ChatGPT identity", value: "Connected")
+                        LabeledContent(
+                            "ChatGPT plan usage",
+                            value: authentication.chatGPT.canUseChatGPTPlan ? "Authorized" : "Not authorized"
+                        )
+                    }
                     Button("Sign Out", role: .destructive) {
                         authentication.signOut()
                         dismiss()
                     }
                 } header: {
                     Text("Account")
+                } footer: {
+                    Text("Google sign-in and ChatGPT sign-in are separate accounts. ChatGPT plan usage requires its own explicit permission.")
                 }
 
                 Section {
