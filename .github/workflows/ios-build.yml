@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
@@ -30,6 +34,7 @@ jobs:
           test -f ChatGPT-iOS/Resources/Info.plist
           count=$(find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift | wc -l | tr -d ' ')
           echo "Swift source files after overlays: $count"
+          find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift -print | sort | head -60
           test "$count" -ge 20
 
       - name: Install XcodeGen
