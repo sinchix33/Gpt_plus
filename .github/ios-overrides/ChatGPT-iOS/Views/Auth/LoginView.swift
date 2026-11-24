@@ -4,6 +4,7 @@ import SafariServices
 struct LoginView: View {
     @ObservedObject var authentication: AuthenticationManager
     @State private var showingChatGPTBrowser = false
+    @State private var chatGPTAuthURL: URL?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -40,13 +41,20 @@ struct LoginView: View {
             .disabled(authentication.isLoading)
 
             Button {
-                showingChatGPTBrowser = true
+                Task {
+                    do {
+                        chatGPTAuthURL = try await authentication.startChatGPTSignIn()
+                        showingChatGPTBrowser = true
+                    } catch {
+                        authentication.errorMessage = error.localizedDescription
+                    }
+                }
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "sparkle")
                     Text("Continue with ChatGPT").fontWeight(.semibold)
                     Spacer()
-                    Image(systemName: "arrow.up.right")
+                    if authentication.chatGPT.isSigningIn { ProgressView() }
                 }
                 .foregroundStyle(.white)
                 .padding()
@@ -54,8 +62,9 @@ struct LoginView: View {
                 .background(Color.black)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
+            .disabled(authentication.chatGPT.isSigningIn)
 
-            Text("ChatGPT opens its official website in a secure in-app browser for now. Native Sign in with ChatGPT is a separate OpenAI integration using OIDC and PKCE; it is available to eligible open-source apps and selected partners. This repository is currently private, and that native flow has not yet been enabled or validated for this project.")
+            Text("Connect your ChatGPT account through OpenAI's official sign-in and consent screen. ChatGPT plan usage is enabled only if OpenAI grants that permission.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -70,9 +79,19 @@ struct LoginView: View {
             Spacer()
         }
         .padding(24)
-        .sheet(isPresented: $showingChatGPTBrowser) {
-            OfficialChatGPTBrowser(url: URL(string: "https://chatgpt.com/auth/login")!)
-                .ignoresSafeArea()
+        .sheet(isPresented: $showingChatGPTBrowser, onDismiss: {
+            chatGPTAuthURL = nil
+        }) {
+            if let url = chatGPTAuthURL {
+                OfficialChatGPTBrowser(url: url)
+                    .ignoresSafeArea()
+            }
+        }
+        .onChange(of: authentication.chatGPTBrowserCompleted) { _, completed in
+            if completed {
+                showingChatGPTBrowser = false
+                authentication.chatGPTBrowserCompleted = false
+            }
         }
     }
 }
