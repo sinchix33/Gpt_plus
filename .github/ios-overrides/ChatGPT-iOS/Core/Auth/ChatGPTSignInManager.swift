@@ -83,7 +83,12 @@ final class ChatGPTSignInManager: ObservableObject {
         let isNew = credentials == nil
         let clientID = credentials?.clientID ?? "dynamic_agent_client"
 
-        let newListener = try NWListener(using: .tcp, on: nil)
+        let listenerParameters = NWParameters.tcp
+        listenerParameters.requiredLocalEndpoint = .hostPort(
+            host: NWEndpoint.Host("127.0.0.1"),
+            port: .any
+        )
+        let newListener = try NWListener(using: listenerParameters)
         listener = newListener
 
         let redirectURI: String = try await withCheckedThrowingContinuation { continuation in
@@ -156,6 +161,8 @@ final class ChatGPTSignInManager: ObservableObject {
     }
 
     private func receiveCallbackTarget(_ target: String) async {
+        // Ignore incidental browser requests such as favicon probes.
+        guard target == "/auth/callback" || target.hasPrefix("/auth/callback?") else { return }
         guard let pending, let activePort else { return }
         guard let components = URLComponents(string: "http://127.0.0.1:\(activePort)\(target)") else {
             failCallback(SignInError.invalidCallback)
@@ -300,6 +307,7 @@ final class ChatGPTSignInManager: ObservableObject {
     }
 
     private func failCallback(_ error: Error) {
+        onBrowserCompleted?()
         pending = nil
         listener?.cancel()
         listener = nil
