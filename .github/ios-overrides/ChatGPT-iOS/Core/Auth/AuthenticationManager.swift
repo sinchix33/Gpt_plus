@@ -83,6 +83,10 @@ public final class AuthenticationManager: ObservableObject {
         return try await chatGPT.prepareAuthorization()
     }
 
+    func cancelChatGPTSignIn() {
+        chatGPT.cancelSignIn()
+    }
+
     func restoreGoogleSession() {
         guard isGoogleConfigured,
               let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String else { return }
