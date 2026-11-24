@@ -1,0 +1,49 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract project archive
+        run: |
+          test -f ChatGPT-iOS-GitHub-ready.zip
+          unzip -q ChatGPT-iOS-GitHub-ready.zip
+          cd ChatGPT-iOS
+          test -f project.yml
+          brew install xcodegen
+          xcodegen generate --spec project.yml
+
+      - name: Build unsigned archive
+        working-directory: ChatGPT-iOS
+        run: |
+          xcodebuild -project ChatGPT-iOS.xcodeproj -scheme ChatGPT-iOS -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/ChatGPT-iOS.xcarchive" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive
+
+      - name: Package unsigned IPA
+        working-directory: ChatGPT-iOS
+        run: |
+          APP="$RUNNER_TEMP/ChatGPT-iOS.xcarchive/Products/Applications/ChatGPT.app"
+          test -d "$APP"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/ChatGPT.app"
+          cd "$RUNNER_TEMP/ipa"
+          /usr/bin/zip -qry "$GITHUB_WORKSPACE/ChatGPT-unsigned.ipa" Payload
+          unzip -l "$GITHUB_WORKSPACE/ChatGPT-unsigned.ipa"
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatGPT-unsigned-IPA
+          path: ChatGPT-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
