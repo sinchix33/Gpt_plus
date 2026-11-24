@@ -24,9 +24,27 @@ jobs:
           unzip -q ChatGPT-iOS-GitHub-ready.zip
           test -f ChatGPT-iOS/project.yml
           test -f ChatGPT-iOS/Resources/Info.plist
-          echo "Swift source files:"
+          echo "Swift source files before normalization:"
           find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift -print
           count=$(find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift | wc -l | tr -d ' ')
+          test "$count" -ge 20
+
+      - name: Normalize Swift source paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            base="$(basename "$file")"
+            target="ChatGPT-iOS/$base"
+            if [ -e "$target" ]; then
+              echo "Duplicate Swift filename while flattening: $base"
+              exit 1
+            fi
+            mv "$file" "$target"
+          done < <(find ChatGPT-iOS -mindepth 2 -type f -name '*.swift' ! -name Package.swift -print0)
+          echo "Swift files at project root:"
+          find ChatGPT-iOS -maxdepth 1 -type f -name '*.swift' -print
+          count=$(find ChatGPT-iOS -maxdepth 1 -type f -name '*.swift' ! -name Package.swift | wc -l | tr -d ' ')
           test "$count" -ge 20
 
       - name: Install XcodeGen
