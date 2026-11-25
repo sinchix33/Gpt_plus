@@ -343,8 +343,18 @@ final class ChatGPTSignInManager: ObservableObject {
         parts.queryItems = values.map { URLQueryItem(name: $0.key, value: $0.value) }
         request.httpBody = parts.percentEncodedQuery?.data(using: .utf8)
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw SignInError.tokenRequestFailed
+        guard let http = response as? HTTPURLResponse else {
+            throw SignInError.tokenRequestFailed(status: -1, reason: "Invalid HTTP response")
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            let serverReason = (payload?["error_description"] as? String)
+                ?? (payload?["detail"] as? String)
+                ?? (payload?["error"] as? String)
+                ?? (payload?["message"] as? String)
+                ?? "OpenAI did not provide an error description"
+            let safeReason = String(serverReason.prefix(240))
+            throw SignInError.tokenRequestFailed(status: http.statusCode, reason: safeReason)
         }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -452,7 +462,7 @@ final class ChatGPTSignInManager: ObservableObject {
     enum SignInError: LocalizedError {
         case alreadyInProgress, callbackListenerFailed, invalidAuthorizationURL, invalidCallback
         case stateMismatch, missingAuthorizationCode, missingIssuedClientID, clientIDMismatch
-        case authorizationDenied(String), tokenRequestFailed, missingIDToken, invalidIDToken
+        case authorizationDenied(String), tokenRequestFailed(status: Int, reason: String), missingIDToken, invalidIDToken
         case invalidSigningKey, secureStorageFailed, notConnected, reauthenticationRequired
 
         var errorDescription: String? {
@@ -465,7 +475,7 @@ final class ChatGPTSignInManager: ObservableObject {
             case .missingIssuedClientID: return "OpenAI did not complete the app registration."
             case .clientIDMismatch: return "The returned ChatGPT client did not match this sign-in attempt."
             case .authorizationDenied(let reason): return "ChatGPT authorization was not completed: \(reason)."
-            case .tokenRequestFailed: return "OpenAI could not exchange the sign-in code. Please try again."
+            case .tokenRequestFailed(let status, let reason): return "OpenAI token exchange failed (HTTP \\(status)): \\(reason)"
             case .missingIDToken, .invalidIDToken, .invalidSigningKey: return "OpenAI identity verification failed. No account was connected."
             case .secureStorageFailed: return "The secure iPhone Keychain could not save the ChatGPT connection."
             case .notConnected: return "No ChatGPT account is connected."
