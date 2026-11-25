@@ -238,8 +238,10 @@ final class ChatGPTSignInManager: ObservableObject {
             self.listener = nil
             self.activePort = nil
             self.isSigningIn = false
-            onBrowserCompleted?()
+            // Publish the authenticated state before dismissing the browser sheet.
+            // This lets the app root switch from LoginView to the chat UI first.
             onAuthenticated?(saved.email)
+            onBrowserCompleted?()
         } catch {
             failCallback(error)
         }
