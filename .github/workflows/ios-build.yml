@@ -36,14 +36,6 @@ jobs:
           echo "Swift source files after overlays: $count"
           test "$count" -ge 20
 
-      - name: Dump SidebarView source for repair
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "===== SIDEBAR_SOURCE_BEGIN ====="
-          nl -ba ChatGPT-iOS/Views/Sidebar/SidebarView.swift
-          echo "===== SIDEBAR_SOURCE_END ====="
-
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -66,6 +58,7 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/ChatGPT-iOS.xcarchive" \
+            -Xfrontend -solver-expression-time-threshold=10 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
