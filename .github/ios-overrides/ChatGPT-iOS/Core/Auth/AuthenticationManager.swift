@@ -10,6 +10,12 @@ public final class AuthenticationManager: ObservableObject {
     /// Shared authentication state used by the app root and sidebar.
     public static let shared = AuthenticationManager()
     @Published private(set) var isSignedIn = false
+
+    /// Compatibility with sidebar views that bind to the authenticated state.
+    var isAuthenticated: Bool {
+        get { isSignedIn }
+        set { isSignedIn = newValue }
+    }
     @Published private(set) var userEmail: String?
     @Published private(set) var userName: String?
     @Published var errorMessage: String?
