@@ -8,7 +8,7 @@ struct ChatGPTApp: App {
     @State private var conversationListViewModel = ConversationListViewModel()
     @State private var isSidebarOpen = false
     @State private var showSettings = false
-    @StateObject private var authentication = AuthenticationManager()
+    @StateObject private var authentication = AuthenticationManager.shared
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
