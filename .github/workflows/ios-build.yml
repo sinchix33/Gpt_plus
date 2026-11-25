@@ -34,16 +34,15 @@ jobs:
           test -f ChatGPT-iOS/Resources/Info.plist
           count=$(find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift | wc -l | tr -d ' ')
           echo "Swift source files after overlays: $count"
-          find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift -print | sort | head -60
           test "$count" -ge 20
 
-      - name: Inspect SidebarView source for compiler diagnostic
+      - name: Dump SidebarView source for repair
         shell: bash
         run: |
           set -euo pipefail
-          echo "===== SidebarView.swift lines 1-100 ====="
-          nl -ba ChatGPT-iOS/Views/Sidebar/SidebarView.swift | sed -n '1,100p'
-          echo "===== End SidebarView.swift ====="
+          echo "===== SIDEBAR_SOURCE_BEGIN ====="
+          nl -ba ChatGPT-iOS/Views/Sidebar/SidebarView.swift
+          echo "===== SIDEBAR_SOURCE_END ====="
 
       - name: Install XcodeGen
         run: brew install xcodegen
