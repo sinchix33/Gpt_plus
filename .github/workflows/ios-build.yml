@@ -37,6 +37,14 @@ jobs:
           find ChatGPT-iOS -type f -name '*.swift' ! -name Package.swift -print | sort | head -60
           test "$count" -ge 20
 
+      - name: Inspect SidebarView source for compiler diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "===== SidebarView.swift lines 1-100 ====="
+          nl -ba ChatGPT-iOS/Views/Sidebar/SidebarView.swift | sed -n '1,100p'
+          echo "===== End SidebarView.swift ====="
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
