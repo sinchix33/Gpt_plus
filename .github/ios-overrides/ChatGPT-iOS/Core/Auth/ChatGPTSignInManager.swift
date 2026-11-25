@@ -79,7 +79,7 @@ final class ChatGPTSignInManager: ObservableObject {
         let state = Self.randomURLSafeString(byteCount: 32)
         let nonce = Self.randomURLSafeString(byteCount: 32)
         let verifier = Self.randomURLSafeString(byteCount: 64)
-        let challenge = Self.base64URL(SHA256.hash(data: Data(verifier.utf8)))
+        let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
         let isNew = credentials == nil
         let clientID = credentials?.clientID ?? "dynamic_agent_client"
 
