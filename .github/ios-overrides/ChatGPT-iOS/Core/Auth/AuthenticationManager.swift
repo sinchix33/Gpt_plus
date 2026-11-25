@@ -7,6 +7,8 @@ import UIKit
 /// placed in the other provider's credential slot.
 @MainActor
 public final class AuthenticationManager: ObservableObject {
+    /// Shared authentication state used by the app root and sidebar.
+    public static let shared = AuthenticationManager()
     @Published private(set) var isSignedIn = false
     @Published private(set) var userEmail: String?
     @Published private(set) var userName: String?
