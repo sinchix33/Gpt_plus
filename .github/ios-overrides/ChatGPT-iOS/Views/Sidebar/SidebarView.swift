@@ -156,18 +156,10 @@ public struct SidebarView: View {
     }
 
     private var accountTitle: String {
-        if let email = authManager.currentUser?.email { return email }
-        if let name = authManager.currentUser?.name { return name }
-        return authManager.isAuthenticated ? "User Account" : "Sign In"
+        authManager.isAuthenticated ? "Signed In" : "Sign In"
     }
 
     private var accountPlanTitle: String {
-        if let plan = authManager.activeAccount?.planType.displayName {
-            return plan
-        }
-        if let plan = authManager.currentUser?.planType {
-            return plan.capitalized
-        }
-        return authManager.isAuthenticated ? "Free Plan" : "Tap to log in"
+        authManager.isAuthenticated ? "Account" : "Tap to log in"
     }
 }
