@@ -235,6 +235,7 @@ final class ChatGPTSignInManager: ObservableObject {
                 expiresAt: Date().addingTimeInterval(tokenResponse.expires_in)
             )
             try save(saved)
+            UserDefaults.standard.set(issuedClientID, forKey: issuedClientIDKey)
             self.credentials = saved
             self.email = saved.email
             self.displayName = saved.name
@@ -287,6 +288,9 @@ final class ChatGPTSignInManager: ObservableObject {
 
     func signOut() {
         let old = credentials
+        if let old {
+            UserDefaults.standard.set(old.clientID, forKey: issuedClientIDKey)
+        }
         credentials = nil
         email = nil
         displayName = nil
