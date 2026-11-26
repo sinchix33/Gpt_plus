@@ -22,6 +22,7 @@ final class ChatGPTSignInManager: ObservableObject {
     private let resource = "https://api.openai.com/v1"
     private let keychainKey = "com.sinchix33.gptplus.siwc.credentials"
     private let hostIDKey = "com.sinchix33.gptplus.siwc.host-id"
+    private let issuedClientIDKey = "com.sinchix33.gptplus.siwc.issued-client-id"
 
     private var listener: NWListener?
     private var activePort: UInt16?
@@ -80,8 +81,11 @@ final class ChatGPTSignInManager: ObservableObject {
         let nonce = Self.randomURLSafeString(byteCount: 32)
         let verifier = Self.randomURLSafeString(byteCount: 64)
         let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
-        let isNew = credentials == nil
-        let clientID = credentials?.clientID ?? "dynamic_agent_client"
+        // Keep a newly issued client ID even if the first code exchange fails.
+        // OpenAI requires a fresh authorization using that issued ID after invalid_grant.
+        let retainedClientID = UserDefaults.standard.string(forKey: issuedClientIDKey)
+        let isNew = credentials == nil && retainedClientID == nil
+        let clientID = credentials?.clientID ?? retainedClientID ?? "dynamic_agent_client"
 
         let listenerParameters = NWParameters.tcp
         listenerParameters.requiredLocalEndpoint = .hostPort(
@@ -193,6 +197,9 @@ final class ChatGPTSignInManager: ObservableObject {
                 return
             }
             issuedClientID = callbackClientID
+            // Persist registration before exchanging the one-time authorization code.
+            // This allows the next attempt to use the issued ID if the code is rejected.
+            UserDefaults.standard.set(issuedClientID, forKey: issuedClientIDKey)
         } else {
             if let callbackClientID, callbackClientID != pending.clientIDUsed {
                 failCallback(SignInError.clientIDMismatch)
