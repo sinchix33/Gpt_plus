@@ -475,7 +475,7 @@ final class ChatGPTSignInManager: ObservableObject {
             case .missingIssuedClientID: return "OpenAI did not complete the app registration."
             case .clientIDMismatch: return "The returned ChatGPT client did not match this sign-in attempt."
             case .authorizationDenied(let reason): return "ChatGPT authorization was not completed: \(reason)."
-            case .tokenRequestFailed(let status, let reason): return "OpenAI token exchange failed (HTTP \\(status)): \\(reason)"
+            case .tokenRequestFailed(let status, let reason): return "OpenAI token exchange failed (HTTP \(status)): \(reason)"
             case .missingIDToken, .invalidIDToken, .invalidSigningKey: return "OpenAI identity verification failed. No account was connected."
             case .secureStorageFailed: return "The secure iPhone Keychain could not save the ChatGPT connection."
             case .notConnected: return "No ChatGPT account is connected."
